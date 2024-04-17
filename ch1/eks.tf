@@ -1,5 +1,42 @@
 data "aws_caller_identity" "current" {}
 
+resource "aws_iam_policy" "external_dns_policy" {
+  name        = "${var.ClusterBaseName}ExternalDNSPolicy"
+  description = "Policy for allowing ExternalDNS to modify Route 53 records"
+
+  policy = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "route53:ChangeResourceRecordSets"
+        ],
+        "Resource": [
+          "arn:aws:route53:::hostedzone/*"
+        ]
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "route53:ListHostedZones",
+          "route53:ListResourceRecordSets"
+        ],
+        "Resource": [
+          "*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "external_dns_policy_attach" {
+  role       = "${var.ClusterBaseName}-node-group-eks-node-group"
+  policy_arn = aws_iam_policy.external_dns_policy.arn
+
+  depends_on = [module.eks]
+}
+
 resource "aws_security_group" "node_group_sg" {
   name        = "${var.ClusterBaseName}-node-group-sg"
   description = "Security group for EKS Node Group"
@@ -16,10 +53,9 @@ resource "aws_security_group_rule" "allow_ssh" {
   to_port     = 22
   protocol    = "tcp"
   cidr_blocks = ["192.168.1.100/32"]
-  
+
   security_group_id = aws_security_group.node_group_sg.id
 }
-
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
@@ -43,6 +79,7 @@ module "eks" {
   }
 
   vpc_id = module.vpc.vpc_id
+  enable_irsa = true
   subnet_ids = module.vpc.public_subnets
 
   eks_managed_node_groups = {
@@ -57,12 +94,17 @@ module "eks" {
       subnets          = module.vpc.public_subnets
       key_name         = "kp_node"
       vpc_security_group_ids = [aws_security_group.node_group_sg.id]
-    }
+      iam_role_name    = "${var.ClusterBaseName}-node-group-eks-node-group"
+      iam_role_use_name_prefix = false
+      iam_role_additional_policies = {
+        "${var.ClusterBaseName}ExternalDNSPolicy" = aws_iam_policy.external_dns_policy.arn
+      }
+   }
   }
 
+  depends_on = [aws_instance.eks_bastion]
 
   access_entries = {
-    # One access entry with a policy associated
     admin = {
       kubernetes_groups = []
       principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/admin"

@@ -1,5 +1,5 @@
 data "aws_ssm_parameter" "ami" {
-  name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+  name = "/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
 }
 
 resource "aws_instance" "eks_bastion" {
@@ -27,12 +27,12 @@ resource "aws_instance" "eks_bastion" {
 
     # Config convenience
     echo 'alias vi=vim' >> /etc/profile
-    echo "sudo su -" >> /home/ec2-user/.bashrc
-    sed -i "s|UTC|Asia/Seoul|g" /etc/sysconfig/clock
-    ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+    echo "sudo su -" >> /home/ubuntu/.bashrc
+    timedatectl set-timezone Asia/Seoul
 
     # Install Packages
-    yum -y install tree jq git htop
+    apt update
+    apt install -y tree jq git htop unzip
 
     # Install kubectl & helm
     curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.29.0/2024-01-04/bin/linux/amd64/kubectl
@@ -73,13 +73,15 @@ resource "aws_instance" "eks_bastion" {
     PS1='$(kube_ps1)'$PS1
     EOT
 
-    # Install Docker
-    amazon-linux-extras install docker -y
-    systemctl start docker
-    systemctl enable docker
+    # Install kubectx & kubens
+    git clone https://github.com/ahmetb/kubectx /opt/kubectx >/dev/null 2>&1
+    ln -s /opt/kubectx/kubens /usr/local/bin/kubens
+    ln -s /opt/kubectx/kubectx /usr/local/bin/kubectx
 
-    # Create SSH Keypair
-    ssh-keygen -t rsa -N "" -f /root/.ssh/id_rsa
+    # Install Docker
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    systemctl enable docker
     
     # IAM User Credentials
     export AWS_ACCESS_KEY_ID="${var.MyIamUserAccessKeyID}"
@@ -110,8 +112,9 @@ resource "aws_instance" "eks_bastion" {
     echo "export PrivateSubnet3=$PrivateSubnet3" >> /etc/profile
     
     # ssh key-pair
-    aws ec2 create-key-pair --key-name kp_node --query 'KeyMaterial' --output text > kp_node.pem
-    chmod 400 kp_node.pem
+    aws ec2 delete-key-pair --key-name kp_node
+    aws ec2 create-key-pair --key-name kp_node --query 'KeyMaterial' --output text > ~/.ssh/kp_node.pem
+    chmod 400 ~/.ssh/kp_node.pem
 
   EOF
   
