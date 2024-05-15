@@ -1,3 +1,7 @@
+locals {
+  cluster_oidc_issuer_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}"
+}
+
 data "aws_caller_identity" "current" {}
 
 resource "aws_iam_policy" "external_dns_policy" {
@@ -75,6 +79,13 @@ module "eks" {
     }
     vpc-cni = {
       most_recent = true
+      configuration_values = jsonencode({
+        enableNetworkPolicy = "true"
+      })
+    }
+    aws-ebs-csi-driver = {
+      most_recent = true
+      service_account_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKS_EBS_CSI_DriverRole"
     }
   }
 
@@ -125,4 +136,54 @@ module "eks" {
     Environment = "cnaee-lab"
     Terraform   = "true"
   }
+}
+
+data "aws_eks_cluster" "cluster" {
+  name = module.eks.cluster_name
+  depends_on = [module.eks]
+}
+
+data "aws_eks_cluster_auth" "cluster" {
+  name = module.eks.cluster_name
+}
+
+data "aws_iam_policy" "ebs_csi_policy" {
+  arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  depends_on = [module.eks]
+}
+
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  token                  = data.aws_eks_cluster_auth.cluster.token
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = data.aws_eks_cluster.cluster.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority.0.data)
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      args        = ["eks", "get-token", "--cluster-name", var.ClusterBaseName]
+      command     = "aws"
+    }
+  }
+}
+
+module "eks-external-dns" {
+  source  = "lablabs/eks-external-dns/aws"
+  version = "1.2.0"
+
+  cluster_identity_oidc_issuer     = module.eks.cluster_oidc_issuer_url
+  cluster_identity_oidc_issuer_arn = local.cluster_oidc_issuer_arn
+
+}
+
+module "eks_aws-load-balancer-controller" {
+  source  = "akw-devsecops/eks/aws//modules/aws-load-balancer-controller"
+  version = "2.6.11"
+
+  cluster_name      = var.ClusterBaseName
+  oidc_provider_arn = local.cluster_oidc_issuer_arn
+
 }

@@ -16,18 +16,12 @@ module "vpc" {
   public_subnets  = var.public_subnet_blocks
   private_subnets = var.private_subnet_blocks
 
-  enable_nat_gateway = true
-  single_nat_gateway = true
-  one_nat_gateway_per_az = false
+  enable_nat_gateway = false
 
   map_public_ip_on_launch = true
 
   igw_tags = {
     "Name" = "${var.ClusterBaseName}-IGW"
-  }
-
-  nat_gateway_tags = {
-    "Name" = "${var.ClusterBaseName}-NAT"
   }
 
   public_subnet_tags = {
