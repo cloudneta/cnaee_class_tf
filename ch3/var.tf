@@ -3,12 +3,6 @@ variable "KeyName" {
   type        = string
 }
 
-variable "MyDomain" {
-  description = "Domain Name"
-  type        = string
-  sensitive   = true
-}
-
 variable "MyIamUserAccessKeyID" {
   description = "IAM User - AWS Access Key ID."
   type        = string
