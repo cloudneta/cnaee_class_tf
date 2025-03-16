@@ -17,19 +17,14 @@ module "vpc" {
   public_subnets  = var.public_subnet_blocks
   private_subnets = var.private_subnet_blocks
 
-  enable_nat_gateway = true
-  single_nat_gateway = true
-  one_nat_gateway_per_az = false
+  enable_nat_gateway = false
+
   manage_default_network_acl = false
 
   map_public_ip_on_launch = true
 
   igw_tags = {
     "Name" = "${var.ClusterBaseName}-IGW"
-  }
-
-  nat_gateway_tags = {
-    "Name" = "${var.ClusterBaseName}-NAT"
   }
 
   public_subnet_tags = {
@@ -59,7 +54,8 @@ resource "aws_security_group" "eks_sec_group" {
 
   name        = "${var.ClusterBaseName}-eks-sec-group"
   description = "Security group for ${var.ClusterBaseName} Host"
-
+  
+  # 인바운드 TCP 22 포트 허용(SSH)
   ingress {
     from_port   = 22
     to_port     = 22
@@ -67,6 +63,15 @@ resource "aws_security_group" "eks_sec_group" {
     cidr_blocks = [var.SgIngressSshCidr]
   }
 
+  # 인바운드 TCP 8800 포트 허용
+  ingress {
+    from_port   = 8800
+    to_port     = 8800
+    protocol    = "tcp"
+    cidr_blocks = [var.SgIngressSshCidr]
+  }
+  
+  # 아웃바운드 모든 트래픽 허용
   egress {
     from_port   = 0
     to_port     = 0

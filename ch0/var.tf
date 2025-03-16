@@ -3,18 +3,6 @@ variable "KeyName" {
   type        = string
 }
 
-variable "MyIamUserAccessKeyID" {
-  description = "IAM User - AWS Access Key ID."
-  type        = string
-  sensitive   = true
-}
-
-variable "MyIamUserSecretAccessKey" {
-  description = "IAM User - AWS Secret Access Key."
-  type        = string
-  sensitive   = true
-}
-
 variable "SgIngressSshCidr" {
   description = "The IP address range that can be used to SSH to the EC2 instances."
   type        = string
@@ -27,41 +15,11 @@ variable "SgIngressSshCidr" {
 variable "MyInstanceType" {
   description = "EC2 instance type."
   type        = string
-  default     = "t3.medium"
+  default     = "t2.micro"
   validation {
     condition     = contains(["t2.micro", "t2.small", "t2.medium", "t3.micro", "t3.small", "t3.medium"], var.MyInstanceType)
     error_message = "Invalid instance type. Valid options are t2.micro, t2.small, t2.medium, t3.micro, t3.small, t3.medium."
   }
-}
-
-variable "ClusterBaseName" {
-  description = "Base name of the cluster."
-  type        = string
-  default     = "myeks"
-}
-
-variable "KubernetesVersion" {
-  description = "Kubernetes version for the EKS cluster."
-  type        = string
-  default     = "1.32"
-}
-
-variable "WorkerNodeInstanceType" {
-  description = "EC2 instance type for the worker nodes."
-  type        = string
-  default     = "t3.medium"
-}
-
-variable "WorkerNodeCount" {
-  description = "Number of worker nodes."
-  type        = number
-  default     = 3
-}
-
-variable "WorkerNodeVolumesize" {
-  description = "Volume size for worker nodes (in GiB)."
-  type        = number
-  default     = 30
 }
 
 variable "TargetRegion" {

@@ -1,8 +1,8 @@
-provider "aws" {
-  region = var.TargetRegion
-}
+####################################
+# VPC and Networking Configuration #
+####################################
 
-
+# VPC 모듈: 퍼블릭 및 프라이빗 서브넷을 포함하는 VPC를 생성
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~>5.7"
@@ -18,6 +18,8 @@ module "vpc" {
   private_subnets = var.private_subnet_blocks
 
   enable_nat_gateway = false
+
+  manage_default_network_acl = false
 
   map_public_ip_on_launch = true
 
@@ -40,6 +42,13 @@ module "vpc" {
   }
 }
 
+
+
+################################
+# Security Group Configuration #
+################################
+
+# 보안 그룹: Bastion Host를 위한 보안 그룹을 생성
 resource "aws_security_group" "eks_sec_group" {
   vpc_id = module.vpc.vpc_id
 

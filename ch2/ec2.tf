@@ -1,7 +1,13 @@
+######################
+# EC2 Instance Setup #
+######################
+
+# 최신 Ubuntu 22.04 AMI ID를 AWS SSM Parameter Store에서 가져옴.
 data "aws_ssm_parameter" "ami" {
   name = "/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
 }
 
+# EKS 클러스터 관리용 Bastion Host EC2 인스턴스를 생성.
 resource "aws_instance" "eks_bastion" {
   ami                         = data.aws_ssm_parameter.ami.value
   instance_type               = var.MyInstanceType
@@ -35,7 +41,7 @@ resource "aws_instance" "eks_bastion" {
     apt install -y tree jq git htop unzip
 
     # Install kubectl & helm
-    curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.29.0/2024-01-04/bin/linux/amd64/kubectl
+    curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.32.0/2024-12-20/bin/linux/amd64/kubectl
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
     curl -s https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 

@@ -110,6 +110,13 @@ module "eks" {
     vpc-cni = {
       most_recent = true
     }
+    aws-ebs-csi-driver = {
+      most_recent = true
+      service_account_role_arn = module.irsa-ebs-csi.iam_role_arn
+    }
+    eks-pod-identity-agent = {
+      most_recent = true
+    }
   }
 
   vpc_id = module.vpc.vpc_id
@@ -185,6 +192,10 @@ resource "aws_iam_policy" "aws_lb_controller_policy" {
   policy = file("aws_lb_controller_policy.json")
 }
 
+# EBS CSI Driver가 Amazon EBS 볼륨을 생성, 삭제 및 관리할 수 있도록 허용하는 AWS 관리형 IAM 정책의 ARN
+data "aws_iam_policy" "ebs_csi_policy" {
+  arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
 
 
 ####################
@@ -217,6 +228,17 @@ module "irsa-external-dns" {
   oidc_fully_qualified_audiences = ["sts.amazonaws.com"]
 }
 
+# EBS CSI Driver가 OIDC 인증을 통해 Amazon EBS 볼륨을 관리할 수 있도록 하는 역할
+module "irsa-ebs-csi" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
+  version = "5.39.0"
+
+  create_role                   = true
+  role_name                     = "AmazonEKSTFEBSCSIRole-${module.eks.cluster_name}"
+  provider_url                  = module.eks.oidc_provider
+  role_policy_arns              = [data.aws_iam_policy.ebs_csi_policy.arn]
+  oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+}
 
 
 ######################
@@ -255,5 +277,5 @@ resource "helm_release" "aws_load_balancer_controller" {
     name  = "region"
     value = "ap-northeast-2"
   }
-  depends_on = [module.eks, module.irsa-lb-controller]
+  depends_on = [module.eks, module.irsa-lb-controller, data.aws_eks_cluster_auth.cluster]
 }

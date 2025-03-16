@@ -7,7 +7,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~>5.7"
 
-  name = "${var.ClusterBaseName}-VPC"
+  name = "cnaee-VPC"
   cidr = var.VpcBlock
   azs  = var.availability_zones
 
@@ -17,28 +17,25 @@ module "vpc" {
   public_subnets  = var.public_subnet_blocks
   private_subnets = var.private_subnet_blocks
 
-  enable_nat_gateway = true
-  single_nat_gateway = true
-  one_nat_gateway_per_az = false
-  manage_default_network_acl = false
+  enable_nat_gateway = false
 
   map_public_ip_on_launch = true
 
   igw_tags = {
-    "Name" = "${var.ClusterBaseName}-IGW"
+    "Name" = "cnaee-IGW"
   }
 
   nat_gateway_tags = {
-    "Name" = "${var.ClusterBaseName}-NAT"
+    "Name" = "cnaee-NAT"
   }
 
   public_subnet_tags = {
-    "Name"                     = "${var.ClusterBaseName}-PublicSubnet"
+    "Name"                     = "cnaee-PublicSubnet"
     "kubernetes.io/role/elb"   = "1"
   }
 
   private_subnet_tags = {
-    "Name"                             = "${var.ClusterBaseName}-PrivateSubnet"
+    "Name"                             = "cnaee-PrivateSubnet"
     "kubernetes.io/role/internal-elb" = "1"
   }
 
@@ -57,12 +54,21 @@ module "vpc" {
 resource "aws_security_group" "eks_sec_group" {
   vpc_id = module.vpc.vpc_id
 
-  name        = "${var.ClusterBaseName}-eks-sec-group"
-  description = "Security group for ${var.ClusterBaseName} Host"
-
+  name        = "cnaee-eks-sec-group"
+  description = "Security group for cnaee Host"
+  
+  # 인바운드 TCP 22 포트 허용(SSH)
   ingress {
     from_port   = 22
     to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.SgIngressSshCidr]
+  }
+
+  # 인바운드 TCP 80 포트 허용
+  ingress {
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = [var.SgIngressSshCidr]
   }
@@ -75,7 +81,6 @@ resource "aws_security_group" "eks_sec_group" {
   }
 
   tags = {
-    Name = "${var.ClusterBaseName}-HOST-SG"
+    Name = "cnaee-HOST-SG"
   }
 }
-
