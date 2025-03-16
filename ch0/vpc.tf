@@ -25,20 +25,6 @@ module "vpc" {
     "Name" = "cnaee-IGW"
   }
 
-  nat_gateway_tags = {
-    "Name" = "cnaee-NAT"
-  }
-
-  public_subnet_tags = {
-    "Name"                     = "cnaee-PublicSubnet"
-    "kubernetes.io/role/elb"   = "1"
-  }
-
-  private_subnet_tags = {
-    "Name"                             = "cnaee-PrivateSubnet"
-    "kubernetes.io/role/internal-elb" = "1"
-  }
-
   tags = {
     "Environment" = "cnaee-lab"
   }
