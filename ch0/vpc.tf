@@ -36,7 +36,7 @@ module "vpc" {
 # Security Group Configuration #
 ################################
 
-# 보안 그룹: Bastion Host를 위한 보안 그룹을 생성
+# 보안 그룹: EC2 인스턴스를 위한 보안 그룹을 생성
 resource "aws_security_group" "eks_sec_group" {
   vpc_id = module.vpc.vpc_id
 

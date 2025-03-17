@@ -19,7 +19,7 @@ data "aws_ssm_parameter" "ami" {
 }
 
 
-# EKS 클러스터 관리용 Bastion Host EC2 인스턴스를 생성.
+# EC2 인스턴스를 생성.
 resource "aws_instance" "eks_bastion" {
   ami                         = data.aws_ssm_parameter.ami.value
   instance_type               = var.MyInstanceType
