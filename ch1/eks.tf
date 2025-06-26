@@ -7,6 +7,16 @@ provider "aws" {
   region = var.TargetRegion
 }
 
+# 요구 프로바이더 버전: helm 2.12.1
+terraform {
+  required_providers {
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.12.1"
+    }
+  }
+}
+
 # Kubernetes 공급자: EKS 클러스터와 연결 (엔드포인트, 인증 토큰, CA 인증서 사용)
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
